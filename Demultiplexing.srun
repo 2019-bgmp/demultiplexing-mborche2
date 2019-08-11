@@ -1,0 +1,58 @@
+#!/usr/bin/python
+
+#SBATCH --partition=bgmp        ### Partition (like a queue in PBS)
+#SBATCH --job-name=countmap     ### Job Name
+#SBATCH --output=countmap.txt         ### File in which to store job output
+#SBATCH --error=countmap.err          ### File in which to store job error messages
+#SBATCH --time=0-15:00:00       ### Wall clock time limit in Days-HH:MM:SS
+#SBATCH --nodes=1               ### Number of nodes needed for the job
+#SBATCH --ntasks-per-node=1     ### Number of tasks to be launched per Node
+#SBATCH --account=bgmp      ### Account used for job submission
+
+import argparse
+import gzip
+
+def meanify():
+    parser = argparse.ArgumentParser(description="Get them means")
+    parser.add_argument("-r", "--readlength", required=True)
+    parser.add_argument("-f", "--file", required=True)
+    return parser.parse_args()
+
+args = meanify()
+rl = args.readlength
+file = args.file
+
+import numpy as np
+
+def convert_phred(letter):
+    return (ord(letter) - 33)
+
+def populate_array(file):
+    with gzip.open(file, "r") as fh:
+        i = 0
+        mean_scores = []
+        for entry in range (0,int(rl)):
+            mean_scores.append(0.0)
+        for line in fh:
+            i+=1
+            if i%4 == 0:
+                line = line.strip("\n")
+                index = 0
+                for y in line:
+                    result = convert_phred(y)
+                    mean_scores[index] = mean_scores[index] + result
+                    index += 1
+        LN = i
+        return((mean_scores), LN)
+
+mean_scores, NR = populate_array(file)
+numrec = NR/4
+
+avgscr = []
+ind = 0
+for number in mean_scores:
+    avgscore = int(number)/int(numrec)
+    avgscr.append(avgscore)
+
+for i in range(len(avgscr)):
+    print(i+1, "\t", avgscr[i])
