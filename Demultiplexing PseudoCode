@@ -1,0 +1,58 @@
+DEMULTIPLEXING PSEUDO-CODE
+
+#Need to store all of the barcodes to refer to later
+Make a list called barcodelist containing the 24 barcode sequences
+Set variables called PairedCount,IndexHoppedCount, and UnknownLowQCount to zero
+Make a blank dictionary for index pairs, and one for index hopped pairs
+
+#Loop through 4 lines of each file at once
+Open the 4 input fastqs for reading in a single with open statement
+  Start a while True loop
+  Use the file handles to read 4 lines at a time into memory
+    Break loop if line empty
+  Do this for each file
+  #To get the R3 sequence in the same format as our listed barcodes, we need to reverse the sequence and change each letter to its reverse compliment
+  Reverse the string of the R3 sequence line using line[::-1], storing in a variable
+  Write for loop to check each letter in the string to see if it == A,G,C,T and then change it to its reverse compliment
+  #See if index 1 matches known indexes
+  Check if sequence line of R2 is in barcodelist
+  #Assess quality of index sequence and sort
+    For letter in R2 score line:
+      Use (ord(letter) - 33) to return the quality score, stored in a list
+    If the average value of the list is > 30:
+        For letter in R3 score line:
+          Use (ord(letter) - 33) to return the quality score, stored in a list
+        If the average value of the list is > 30:
+          #See if indexes are matching, if not check for index hopping or sort into unknown if indexes not found
+          Check if the sequence line for R2 is the same as the changed sequence of R3
+            If so, open a file in a+ (append) mode with the title R2Seqline"-"R3Seqline.fastq
+              Append the 4 lines from R1 to the file
+            Open another file in a+ mode with the title R2Seqline"-"R3Seqline.fastq"_"R.fastq
+              Append the 4 lines from R4 to the file
+            Create/add to dictionary with the indexed hopped pairs as the key and set the value to increment 1
+            Set PairedCount += 1
+          elif: check if sequence line of R3 is in barcodelist
+            If so, open a file in a+ mode with the title Indexhopped.fastq
+              Append the 4 lines from R1 to the file
+            Open another file in a+ mode with the title Indexhopped_R.fastq
+              Append the 4 lines from R4 to the file
+            Create/add to dictionary with the indexed hopped pairs as the key and set the value to increment 1
+            Set IndexHoppedCount += 1
+          else:
+            Open a file in a+ mode with the title UnknownAndLowQuality.fastq
+              Append the 4 lines from R1 to the file
+            Open another file in a+ mode with the title UnknownAndLowQuality_R.fastq
+              Append the 4 lines from R4 to the file
+            Set UnknownLowQCount += 1
+        #Else from the quality score check line. This sorts low quality into the corresponding file
+        else:
+          Open a file in a+ mode with the title UnknownAndLowQuality.fastq
+            Append the 4 lines from R1 to the file
+          Open another file in a+ mode with the title UnknownAndLowQuality_R.fastq
+            Append the 4 lines from R4 to the file
+          Set UnknownLowQCount += 1
+
+#Output to print final counts
+Print the count variables
+Print dictionary for index pairs
+Print dictionary for index hopped pairs
