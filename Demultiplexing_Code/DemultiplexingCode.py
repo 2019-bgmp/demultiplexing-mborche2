@@ -1,3 +1,5 @@
+#!/usr/bin/env/python
+
 #Read in files to be demultiplexed
 import argparse
 def get_args():
@@ -25,18 +27,10 @@ UnknownLowQCount=0
 IndexPairsDictionary={}
 IndexHoppedPairsDictionary={}
 
-#R1_File = "/projects/bgmp/shared/2017_sequencing/1294_S1_L008_R1_001.fastq.gz"
-#R2_File = "/projects/bgmp/shared/2017_sequencing/1294_S1_L008_R2_001.fastq.gz"
-#R3_File = "/projects/bgmp/shared/2017_sequencing/1294_S1_L008_R3_001.fastq.gz"
-#R4_File = "/projects/bgmp/shared/2017_sequencing/1294_S1_L008_R4_001.fastq.gz"
-#R1_File = "testR1.fastq.gz"
-#R2_File = "testR2.fastq.gz"
-#R3_File = "testR3.fastq.gz"
-#R4_File = "testR4.fastq.gz"
-
+#Open files to be demultiplexed
 with gzip.open(R1_File, "rt") as f1, gzip.open(R2_File, "rt") as f2, gzip.open(R3_File, "rt") as f3, gzip.open(R4_File, "rt") as f4:
-	#Forward Sequence
 	while True:
+		#Forward Sequence
 		R1L1 = f1.readline().strip()
 		if R1L1 == "":
 			break
@@ -58,157 +52,169 @@ with gzip.open(R1_File, "rt") as f1, gzip.open(R2_File, "rt") as f2, gzip.open(R
 		R4L2 = f4.readline().strip()
 		R4L3 = f4.readline().strip()
 		R4L4 = f4.readline().strip()
-		#Change reverse barcode to reverse compliment
-		Barcode_Reverse_Complement = R3L2[::-1]
-		New_Barcode=[]
-		for index in range(len(Barcode_Reverse_Complement)):
-			New_Barcode.append(0)
-		for index in range(len(Barcode_Reverse_Complement)):
-			if Barcode_Reverse_Complement[index] == "A":
-				New_Barcode[index] = "T"
-			elif Barcode_Reverse_Complement[index] == "T":
-				New_Barcode[index] = "A"
-			elif Barcode_Reverse_Complement[index] == "C":
-				New_Barcode[index] = "G"
-			elif Barcode_Reverse_Complement[index] == "G":
-				New_Barcode[index] = "C"
-		Actual_Reverse_Complement = "".join(str(i) for i in New_Barcode)
+		#Check the quality score of the forward barcode
 		scores = []
 		for letter in R2L4:
 			scores.append(0)
 		if R2L2 in barcodelist:
 			for index in range(len(R2L4)):
 				scores[index] = ord(str(R2L4[index]))-33
+			if min(scores) >= 30:
+				#Check the quality score of the reverse barcode
+				for index in range(len(R2L4)):
+					scores[index] = ord(str(R3L4[index]))-33
 				if min(scores) >= 30:
-					for index in range(len(R2L4)):
-						scores[index] = ord(str(R3L4[index]))-33
-						if min(scores) >= 30:
-							if R2L2 == Actual_Reverse_Complement:
-								filenme = R2L2+"-"+R3L2
-								filenme2 = R2L2+"-"+R3L2+"_R"+".fastq"
-								filenme3 = R2L2+"-"+R3L2+".fastq"
-								with open(filenme3, "a+") as fil:
-									fil.write(R1L1)
-									fil.write("\n")
-									fil.write(R1L2)
-									fil.write("\n")
-									fil.write(R1L3)
-									fil.write("\n")
-									fil.write(R1L4)
-									fil.write("\n")
-									fil.close()
-								with open(filenme2, "a+") as fil:
-									fil.write(R4L1)
-									fil.write("\n")
-									fil.write(R4L2)
-									fil.write("\n")
-									fil.write(R4L3)
-									fil.write("\n")
-									fil.write(R4L4)
-									fil.write("\n")
-									fil.close()
-								if filenme not in IndexPairsDictionary:
-									IndexPairsDictionary[filenme] = 1
-								else:
-									IndexPairsDictionary[filenme] += 1
-								PairedCount += 1
-							elif Actual_Reverse_Complement in barcodelist:
-								filenme = R2L2+"-"+R3L2
-								with open("Index_Hopped.fastq", "a+") as fil:
-									fil.write(R1L1)
-									fil.write("\n")
-									fil.write(R1L2)
-									fil.write("\n")
-									fil.write(R1L3)
-									fil.write("\n")
-									fil.write(R1L4)
-									fil.write("\n")
-									fil.close()
-								with open("Index_Hopped_R.fastq", "a+") as filh:
-									filh.write(R1L1)
-									filh.write("\n")
-									filh.write(R1L2)
-									filh.write("\n")
-									filh.write(R1L3)
-									filh.write("\n")
-									filh.write(R1L4)
-									filh.write("\n")
-									filh.close()
-								if filenme not in IndexHoppedPairsDictionary:
-									IndexHoppedPairsDictionary[filenme] = 1
-								else:
-									IndexHoppedPairsDictionary[filenme] += 1
-								IndexHoppedCount += 1
-							else:
-								with open("Unknown_And_Low_Quality.fastq", "a+") as fil:
-									fil.write(R1L1)
-									fil.write("\n")
-									fil.write(R1L2)
-									fil.write("\n")
-									fil.write(R1L3)
-									fil.write("\n")
-									fil.write(R1L4)
-									fil.write("\n")
-									fil.close()
-								with open("Unknown_And_Low_Quality_R.fastq", "a+") as fil:
-									fil.write(R1L1)
-									fil.write("\n")
-									fil.write(R1L2)
-									fil.write("\n")
-									fil.write(R1L3)
-									fil.write("\n")
-									fil.write(R1L4)
-									fil.write("\n")
-									fil.close()
-								UnknownLowQCount += 1
+					#Change reverse barcode to reverse compliment
+					Barcode_Reverse_Complement = R3L2[::-1]
+					New_Barcode=[]
+					for index in range(len(Barcode_Reverse_Complement)):
+						New_Barcode.append(0)
+					for index in range(len(Barcode_Reverse_Complement)):
+						if Barcode_Reverse_Complement[index] == "A":
+							New_Barcode[index] = "T"
+						elif Barcode_Reverse_Complement[index] == "T":
+							New_Barcode[index] = "A"
+						elif Barcode_Reverse_Complement[index] == "C":
+							New_Barcode[index] = "G"
+						elif Barcode_Reverse_Complement[index] == "G":
+							New_Barcode[index] = "C"
+					Actual_Reverse_Complement = "".join(str(i) for i in New_Barcode)
+					#Check if the two barcodes match
+					if R2L2 == Actual_Reverse_Complement:
+						#Set variables for filenames and write barcode matched fasta files
+						filenme = R2L2+"-"+R3L2
+						filenme2 = R2L2+"-"+R3L2+"_R"+".fastq"
+						filenme3 = R2L2+"-"+R3L2+".fastq"
+						with open(filenme3, "a+") as fil:
+							fil.write(R1L1)
+							fil.write("\n")
+							fil.write(R1L2)
+							fil.write("\n")
+							fil.write(R1L3)
+							fil.write("\n")
+							fil.write(R1L4)
+							fil.write("\n")
+							fil.close()
+						with open(filenme2, "a+") as fil:
+							fil.write(R4L1)
+							fil.write("\n")
+							fil.write(R4L2)
+							fil.write("\n")
+							fil.write(R4L3)
+							fil.write("\n")
+							fil.write(R4L4)
+							fil.write("\n")
+							fil.close()
+						#Add to dictionary to track exact barcode pair counts
+						if filenme not in IndexPairsDictionary:
+							IndexPairsDictionary[filenme] = 1
 						else:
-							with open("Unknown_And_Low_Quality.fastq", "a+") as fil:
-								fil.write(R1L1)
-								fil.write("\n")
-								fil.write(R1L2)
-								fil.write("\n")
-								fil.write(R1L3)
-								fil.write("\n")
-								fil.write(R1L4)
-								fil.write("\n")
-								fil.close()
-							with open("Unknown_And_Low_Quality_R.fastq", "a+") as fil:
-								fil.write(R1L1)
-								fil.write("\n")
-								fil.write(R1L2)
-								fil.write("\n")
-								fil.write(R1L3)
-								fil.write("\n")
-								fil.write(R1L4)
-								fil.write("\n")
-								fil.close()
-							UnknownLowQCount += 1
+							IndexPairsDictionary[filenme] += 1
+						PairedCount += 1
+					#Check if the reverse barcode is in the barcode list
+					elif Actual_Reverse_Complement in barcodelist:
+						#Set filename variable and write index hopped fasta files
+						filenme = R2L2+"-"+R3L2
+						with open("Index_Hopped.fastq", "a+") as fil:
+							fil.write(R1L1)
+							fil.write("\n")
+							fil.write(R1L2)
+							fil.write("\n")
+							fil.write(R1L3)
+							fil.write("\n")
+							fil.write(R1L4)
+							fil.write("\n")
+							fil.close()
+						with open("Index_Hopped_R.fastq", "a+") as filh:
+							filh.write(R1L1)
+							filh.write("\n")
+							filh.write(R1L2)
+							filh.write("\n")
+							filh.write(R1L3)
+							filh.write("\n")
+							filh.write(R1L4)
+							filh.write("\n")
+							filh.close()
+						#Add to dictionary to index(barcode) hop counts
+						if filenme not in IndexHoppedPairsDictionary:
+							IndexHoppedPairsDictionary[filenme] = 1
+						else:
+							IndexHoppedPairsDictionary[filenme] += 1
+						IndexHoppedCount += 1
+					#If the reverse barcode isn't valid, add to unknown and low quality file
+					else:
+						with open("Unknown_And_Low_Quality.fastq", "a+") as fil:
+							fil.write(R1L1)
+							fil.write("\n")
+							fil.write(R1L2)
+							fil.write("\n")
+							fil.write(R1L3)
+							fil.write("\n")
+							fil.write(R1L4)
+							fil.write("\n")
+							fil.close()
+						with open("Unknown_And_Low_Quality_R.fastq", "a+") as fil:
+							fil.write(R1L1)
+							fil.write("\n")
+							fil.write(R1L2)
+							fil.write("\n")
+							fil.write(R1L3)
+							fil.write("\n")
+							fil.write(R1L4)
+							fil.write("\n")
+							fil.close()
+						UnknownLowQCount += 1
+				#If the reverse barcode fails a quality check, add to unknown and low quality file
 				else:
-					with open("Unknown_And_Low_Quality.fastq", "a+") as fi:
-						fi.write(R1L1)
-						fi.write("\n")
-						fi.write(R1L2)
-						fi.write("\n")
-						fi.write(R1L3)
-						fi.write("\n")
-						fi.write(R1L4)
-						fi.write("\n")
-						fi.close()
-					with open("Unknown_And_Low_Quality_R.fastq", "a+") as fih:
-						fih.write(R1L1)
-						fih.write("\n")
-						fih.write(R1L2)
-						fih.write("\n")
-						fih.write(R1L3)
-						fih.write("\n")
-						fih.write(R1L4)
-						fih.write("\n")
-						fih.close()
+					with open("Unknown_And_Low_Quality.fastq", "a+") as fil:
+						fil.write(R1L1)
+						fil.write("\n")
+						fil.write(R1L2)
+						fil.write("\n")
+						fil.write(R1L3)
+						fil.write("\n")
+						fil.write(R1L4)
+						fil.write("\n")
+						fil.close()
+					with open("Unknown_And_Low_Quality_R.fastq", "a+") as fil:
+						fil.write(R1L1)
+						fil.write("\n")
+						fil.write(R1L2)
+						fil.write("\n")
+						fil.write(R1L3)
+						fil.write("\n")
+						fil.write(R1L4)
+						fil.write("\n")
+						fil.close()
 					UnknownLowQCount += 1
+			#If the forward barcode fails a quality check, add to unknown and low quality file
+			else:
+				with open("Unknown_And_Low_Quality.fastq", "a+") as fi:
+					fi.write(R1L1)
+					fi.write("\n")
+					fi.write(R1L2)
+					fi.write("\n")
+					fi.write(R1L3)
+					fi.write("\n")
+					fi.write(R1L4)
+					fi.write("\n")
+					fi.close()
+				with open("Unknown_And_Low_Quality_R.fastq", "a+") as fih:
+					fih.write(R1L1)
+					fih.write("\n")
+					fih.write(R1L2)
+					fih.write("\n")
+					fih.write(R1L3)
+					fih.write("\n")
+					fih.write(R1L4)
+					fih.write("\n")
+					fih.close()
+				UnknownLowQCount += 1
 
 #Print Count variables and summary information
 print(IndexPairsDictionary)
 with open("Summary_Demultiplex.txt", "w+") as summ:
+	#Total and specific matched and index hopped counts
 	summ.write("Index Matched Counts:")
 	matched=str(PairedCount)
 	summ.write(matched)
@@ -225,22 +231,30 @@ with open("Summary_Demultiplex.txt", "w+") as summ:
 		summ.write("\n")
 		summ.write(info)
 	summ.write("\n")
+	#Unknown and low quality total
 	summ.write("Unknown and Low Quality Count:")
 	unknwn = str(UnknownLowQCount)
 	summ.write(unknwn)
+	#Find the occurence of each barcode in hopped and matched dictionaries, to later find percent each read is of total
 	countdictionary ={}
 	for item in barcodelist:
 		countdictionary[item] = 0
-	for key in IndexHoppedPairsDictionary:
-		for item in barcodelist:
-			if str(item) in str(key):
-				value = IndexHoppedPairsDictionary[key]
-				countdictionary[item] += value
 	for key in IndexPairsDictionary:
 		for item in barcodelist:
 			if str(item) in str(key):
 				value = IndexPairsDictionary[key]
 				countdictionary[item] += value
+	#Assuming index hopping equal from both ends, number of reads per barcode equal to half of barcode occurence in index hopped
+	for key in IndexHoppedPairsDictionary:
+		for item in barcodelist:
+			if str(item) in str(key):
+				value = (IndexHoppedPairsDictionary[key])/2
+				countdictionary[item] += value
+	#Turn occurence number into a percent
+	for key in countdictionary:
+		totalcount = IndexHoppedCount+PairedCount
+		percentify = (countdictionary[key]/totalcount)*100
+		countdictionary[key] = percentify
 	summ.write("\n")
 	summ.write("Percent of total reads per barcode:")
 	for key,value in countdictionary.items():
